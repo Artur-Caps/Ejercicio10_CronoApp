@@ -1,3 +1,4 @@
+
 package com.mexiti.cronoapp.ui.views
 
 import androidx.compose.foundation.layout.Arrangement
@@ -16,13 +17,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -36,16 +37,52 @@ import com.mexiti.cronoapp.ui.components.formatTiempo
 import com.mexiti.cronoapp.viewmodel.CronometroViewModel
 import com.mexiti.cronoapp.viewmodel.DataViewModel
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ContentAddView(it:PaddingValues,
-                   navController: NavController,
-                   cronometroVM: CronometroViewModel,
-                   dataVM:DataViewModel
+fun EditView(navController: NavController,
+             cronometroVM: CronometroViewModel,
+             dataVM: DataViewModel,
+             id:Long
 ){
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { MainTitle(title = stringResource(R.string.edit_cronometro)) },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                ),
+                navigationIcon = {
+                    MainIconButton(
+                        icon = Icons.Default.ArrowBack
+                    ) {
+                        navController.popBackStack()
+                    }
+                }
+            )
+        }
+    ) {
+
+        ContentEditView(it = it, navController, cronometroVM,dataVM,id)
+    }
+
+}
+
+@Composable
+fun ContentEditView(it: PaddingValues,
+                    navController: NavController,
+                    cronometroVM: CronometroViewModel,
+                    dataVM: DataViewModel,
+                    id: Long) {
     val state = cronometroVM.state
     LaunchedEffect(key1 = state.cronometroActivo ){
         cronometroVM.cronos()
     }
+
+    LaunchedEffect(key1 = Unit){
+        cronometroVM.getCronoById(id)
+    }
+
     Column(
         modifier = Modifier
             .padding(it)
@@ -53,97 +90,46 @@ fun ContentAddView(it:PaddingValues,
             .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
         Text(text = formatTiempo(time = cronometroVM.time),
             fontSize = 50.sp,
-            fontWeight = FontWeight.Bold)
-        Row(horizontalArrangement = Arrangement.Center,
+            fontWeight = FontWeight.Bold
+        )
+        Row( horizontalArrangement = Arrangement.Center,
             modifier = Modifier.padding(vertical = 16.dp)
-        ) {
+        )
+        {
             CircleButton(icon = painterResource(id = R.drawable.play_arrow_24),
-                //Enable Cronom State
                 enabled = !state.cronometroActivo
             ) {
-                //Start cronomVM.iniciar()
                 cronometroVM.iniciar()
             }
             CircleButton(icon = painterResource(id = R.drawable.pause_24),
-                //State pause
                 enabled = state.cronometroActivo
             ) {
-                //Start cronomVM.pausar()
                 cronometroVM.pausar()
             }
-            CircleButton(icon = painterResource(id = R.drawable.stop_24),
-                // State inactivo
-                enabled = !state.cronometroActivo
-
-            ) {
-                //Start cronomVM.detener()
-                cronometroVM.detener()
-            }
-            CircleButton(icon = painterResource(id = R.drawable.save_24),
-                //state Save
-                enabled = state.showSaveButton
-            ) {
-                //Start cronomVM.showTextField()
-                cronometroVM.showTextField()
-            }
         }
-        /*
-            Code to Save time if state.showTextField
-         */
-        if( state.showTextField){
-            MainTextField(value = state.title,
-                onValueChange = {cronometroVM.onValue(it)}  ,
-                label = "Title")
-
-            Button(onClick = {
-                dataVM.addCrono(
-                    Cronos(title = state.title,
-                        crono = cronometroVM.time
-                    )
+        MainTextField(value = state.title,
+            onValueChange = {cronometroVM.onValue(it)},
+            label = "Title")
+        Button(onClick = {
+            dataVM.updateCrono(
+                Cronos(id = id,
+                    title = state.title,
+                    crono = cronometroVM.time
                 )
-                cronometroVM.detener()
-                navController.popBackStack()
-            }) {
-                Text(text = "Guardar")
-            }
-
-        }
-
-    }
-
-}
-//AddView(navController:  navegación entre vistas)
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AddView(navController: NavController,
-            cronometroVM: CronometroViewModel,
-            dataVM: DataViewModel
-){
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { MainTitle(title = stringResource(R.string.add_view) ) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                ),
-                navigationIcon = {
-                    MainIconButton(icon = Icons.Default.ArrowBack) {
-                        navController.popBackStack()
-                    }
-                }
             )
-
+            navController.popBackStack()
+        }) {
+            Text(text = "Guardar Cambios")
         }
-    ) {
-        ContentAddView(it = it, navController = navController,cronometroVM, dataVM )
-    }
-}
 
-@Preview
-@Composable
-fun AddViewPreview(){
-    //AddView()
+        DisposableEffect(Unit){
+            onDispose {
+                cronometroVM.detener()
+            }
+        }
+
+    }
+
 }
